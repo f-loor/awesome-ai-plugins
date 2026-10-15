@@ -122,8 +122,9 @@ def check_summary(result: dict[str, object], scanner_jobs: dict[int, list[str]])
             "failure",
             "source scan failed",
             f"The centralized source scan returned: {job_details}. "
-            "A passing scan (score at least 80 with no critical or high findings) is required before merge. "
-            "Review the rule-level findings and rerun the scan.",
+            "A completed, passing scan with a score of at least 80 is required before merge. "
+            "Finding severities are advisory for listing eligibility. "
+            "Review the scan logs and rule-level findings, resolve any scan errors, and rerun the scan.",
         )
 
     raise RuntimeError(f"unknown validator result state: {state}")
@@ -310,6 +311,10 @@ def publish_check(
         raise RuntimeError("validator returned an invalid PR identity")
 
     conclusion, check_title, summary = check_summary(result, scanner_jobs)
+    if check_title.startswith("source scan"):
+        summary += (f"\n\n[Open the source scan job summaries and download sanitized JSON/SARIF findings]({run_url}). "
+                    f"Look for the `scan-findings-pr-{number}-` artifact. Reports include rule IDs and file locations, "
+                    "but omit source snippets and credential values. A missing report indicates a scanner execution problem, not a passing scan.")
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     payload = {
         "name": CHECK_NAME,
